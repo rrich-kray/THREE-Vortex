@@ -13,6 +13,9 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 // Turn this into a game. Place a character at the center of the tube,
 // arrow keys change the y and z, does not move character forward
 // Character must avoid objects in path. 
+// Could save this idea for an asteroids type game instead, in which a space ship must avoid asteroids
+// So could instead add some interactivity to this. a button to change color, a button to set colors to change automatically at intervals, ability to set the interval, etc...
+// Or maybe click to change color, or mouseover to change color
 
 class Setup
 {
@@ -40,8 +43,8 @@ class Setup
   {
     const Camera = new THREE.PerspectiveCamera(75, this.Sizes.width / this.Sizes.height, 0.1, 100);
     Camera.position.z = 5;
-    // const controls: OrbitControls = new OrbitControls(Camera, this.Canvas);
-    // controls.enableDamping = true;
+    const controls: OrbitControls = new OrbitControls(Camera, this.Canvas);
+    controls.enableDamping = true;
     this.Scene.add(Camera);
 
     window.addEventListener('resize', () =>
@@ -94,18 +97,29 @@ class Setup
 }
 
 const setup = new Setup();
-setup.InitTestObject();
+//setup.InitTestObject();
 
 setup.Tick();
 
 class ObjectInitializer
 {
-  public static Instances()
+  private Scene: THREE.Scene;
+  private Camera: THREE.PerspectiveCamera;
+  private Renderer: THREE.WebGLRenderer;
+
+  constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer)
+  {
+    this.Scene = scene;
+    this.Camera = camera;
+    this.Renderer = renderer;
+  }
+
+  public InstancesWithinTunnel()
   {
     const cubeDimensions = {
-      width: 4,
-      height: 4,
-      depth: 4
+      width: 0.5,
+      height: 0.5,
+      depth: 0.5
     }
 
     const cubeInstanceCount = 50;
@@ -117,8 +131,8 @@ class ObjectInitializer
 
     for (let i=0; i<=cubeInstanceCount; i++)
     {
-      const angle = Math.random() * Math.PI * 2;
-      const radius = 3 + Math.random() * 4;
+      const angle = Math.random() * Math.PI * 6;
+      const radius = 3 + Math.random() * 1;
       const x = Math.sin(angle) * radius;
       const y = Math.cos(angle) * radius;
       const z = Math.cos(angle) * radius;
@@ -130,10 +144,67 @@ class ObjectInitializer
 
       cubeInstancedMesh.setMatrixAt(i, dummy.matrix);
     } 
-    setup.Scene.add(cubeInstancedMesh);
+    // cubeInstancedMesh.rotateZ(10);
+    this.Scene.add(cubeInstancedMesh);
   }
 
-  public static Particles(scene: THREE.Scene)
+  public InstanceShape()
+  {
+    const sphereDimensions = {
+      radius: 0.05,
+      widthSegments: 8
+    }
+
+    const torusGeometry: THREE.TorusGeometry = new THREE.TorusGeometry(5, 1, 50, 300);
+    const torusPositions = torusGeometry.getAttribute('position');
+    torusGeometry.rotateY(7.85);
+    
+    this.Camera.position.set(0, 5, 2);
+    
+    const sphereInstanceCount = torusPositions.count;
+    const sphereInstancedMaterial: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial({ color: 'red' });
+    const sphereInstancedGeometry: THREE.SphereGeometry = new THREE.SphereGeometry(sphereDimensions.radius, sphereDimensions.widthSegments);
+    const sphereInstancedMesh = new THREE.InstancedMesh(sphereInstancedGeometry, sphereInstancedMaterial, sphereInstanceCount);
+
+    const vertex = new THREE.Vector3();
+    const object3d = new THREE.Object3D();
+
+    for (let i=0; i<=sphereInstanceCount; i++)
+    {
+      vertex.fromBufferAttribute(torusPositions, i);
+      object3d.position.x = vertex.x;
+      object3d.position.y = vertex.y;
+      object3d.position.z = vertex.z;
+      object3d.updateMatrix();
+
+      sphereInstancedMesh.setMatrixAt(i, object3d.matrix);
+    } 
+    this.Scene.add(sphereInstancedMesh);
+
+    this.Renderer.setAnimationLoop(() => 
+    {
+      torusGeometry.rotateZ(0.025);
+      this.Camera.rotateZ(0.001);
+
+      const newTorusPositions = torusGeometry.getAttribute('position');
+
+      for (let i=0; i<=sphereInstanceCount-1; i++)
+      {
+        vertex.fromBufferAttribute(newTorusPositions, i);
+        
+        object3d.position.x = vertex.x;
+        object3d.position.y = vertex.y;
+        object3d.position.z = vertex.z;
+
+        object3d.updateMatrix();
+
+        sphereInstancedMesh.setMatrixAt(i, object3d.matrix);
+      }
+    });
+
+  }
+
+  public ParticleShape()
   {
     const textureLoader = new THREE.TextureLoader();
     const particlesTexture = textureLoader.load('../static/textures/particles/5.png');
@@ -143,7 +214,6 @@ class ObjectInitializer
     const particleCount: number = torusVertexPositions.count*3;
     const particlePositions: Float32Array = new Float32Array(particleCount);
     const particlesColors: Float32Array = new Float32Array(particleCount);
-    console.log(particleCount);
     const vertex = new THREE.Vector3();
 
     let j = 0;
@@ -177,17 +247,18 @@ class ObjectInitializer
       vertexColors: true
     });
 
-    setup.Camera.position.z = 0;
-    setup.Camera.position.y = 5.5;
+    this.Camera.position.z = 0;
+    this.Camera.position.y = 5.25;
     const cameraVector = new THREE.Vector3(Math.PI * 2.5, 1, 0.5);
     setup.Camera.lookAt(cameraVector);
 
     const particles = new THREE.Points(particlesGeometry, particlesMaterial);
-    scene.add(particles);
-    setup.Renderer.setAnimationLoop(() => 
+    this.Scene.add(particles);
+
+    this.Renderer.setAnimationLoop(() => 
     {
       torusGeometry.rotateZ(0.0025);
-      setup.Camera.rotateZ(0.001);
+      this.Camera.rotateZ(0.001);
 
       const newTorusPositions = torusGeometry.getAttribute('position');
 
@@ -212,41 +283,56 @@ class ObjectInitializer
       particlesGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
     });
 
-    const colors: THREE.Vector3[] = [
+    const colors: THREE.Color[] = [
       // new THREE.Vector3().set(0, 0, 0),
-      new THREE.Vector3().set(2, 2, 2),
-      new THREE.Vector3().set(0.25, 0.25, 0.25),
-      new THREE.Vector3().set(0.1, 0.1, 0.1),
-      new THREE.Vector3().set(0.75, 0.75, 0.75),
+      new THREE.Color().setRGB(0.5, 0.25, 0),
+      new THREE.Color().setRGB(0.25, 0.5, 1),
+      new THREE.Color().setRGB(0.1, 0.333, 0.22)
     ]
 
-    const setParticleColors = (colorIndex: number) => 
+    const setParticleColorsWithDelay = (colorIndex: number) => 
     {
       let delay: number = 0;
       for (let i=0; i<=particleCount; i+=3)
       {
         setTimeout(() => 
         {
-          particlesColors[i] = colors[colorIndex].x;
-          particlesColors[i+1] = colors[colorIndex].y;
-          particlesColors[i+2] = colors[colorIndex].z;
+          particlesColors[i] = colors[colorIndex].r;
+          particlesColors[i+1] = colors[colorIndex].g;
+          particlesColors[i+2] = colors[colorIndex].b;
           particlesGeometry.setAttribute('color', new THREE.BufferAttribute(particlesColors, 3));
         }, delay);
-        delay += 0.1;
+        delay += 0.025;
       }
     }
 
+    const setParticlesColorsWithoutDelay = (colorIndex: number) => 
+    {
+      for (let i=0; i<=particleCount; i+=3)
+      { 
+        particlesColors[i] =  colors[colorIndex].r;
+        particlesColors[i+1] = colors[colorIndex].g;
+        particlesColors[i+2] = colors[colorIndex].b;
+      }
+      particlesGeometry.setAttribute('color', new THREE.BufferAttribute(particlesColors, 3));
+    }
+
     let colorIndex = 0;
+    // setParticleColorsWithDelay(colorIndex);
+    setParticlesColorsWithoutDelay(colorIndex);
     setInterval(() => {
-      setParticleColors(colorIndex);
+      // setParticleColorsWithDelay(colorIndex);
+      setParticlesColorsWithoutDelay(colorIndex);
       colorIndex++;
       if (colorIndex > colors.length-1) colorIndex = 0;
-    }, 1500);
-    setParticleColors(colorIndex);
+    }, 750);
   }
 }
 
-ObjectInitializer.Particles(setup.Scene);
+const objectInitializer = new ObjectInitializer(setup.Scene, setup.Camera, setup.Renderer); 
+
+objectInitializer.ParticleShape();
+//objectInitializer.InstanceShape();
 
 
 
