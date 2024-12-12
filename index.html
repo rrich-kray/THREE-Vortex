@@ -5,14 +5,19 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <link rel="stylesheet" href="src/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + TS</title>
+    <title>Torus Traversal</title>
   </head>
   <body>
     <div id="app">
+      <div class="dropdown-container">
+        <button class="startBtn changeSpeed"></button>
+        <button class="startBtn changeColor"></button>
+        <button class="startBtn alternateColors"></button>
+      </div>
       <canvas id="webgl">
-        <button class="startBtn"></button>
       </canvas>
     </div>
     <script type="module" src="src/main.ts"></script>
+    <script type="module" src="src/dropdown.ts"></script>
   </body>
 </html>

@@ -25,9 +25,62 @@ body {
   height: 100vh;
   margin: 0 auto;
   text-align: center;
+  position: relative;
 }
 
 #webgl {
   height: 100%;
   width: 100%;
+  position: relative;
+}
+
+.dropdown-container {
+  position: absolute;
+  height: 250px;
+}
+
+.dropdown-list {
+  z-index: 1500;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 250px;
+}
+
+.dropdown-item {
+  display: block;
+  position: absolute;
+  list-style-type: none;
+  height: 50px;
+  width: 250px;
+  top: 10px;
+  left: 10px;
+}
+
+.startBtn {
+  height: 50px;
+  width: 75px;
+  position: absolute;
+  z-index: 1000;
+  left: 10px;
+  opacity: 0.75;
+  text-align: center;
+  transition: 750ms cubic-bezier(0.075, 0.82, 0.165, 1);
+  background-color: grey;
+  color: white;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+}
+
+.changeSpeed {
+  top: 10px;
+}
+
+.changeColor {
+  top: 65px;
+}
+
+.alternateColors {
+  top: 120px;
 }

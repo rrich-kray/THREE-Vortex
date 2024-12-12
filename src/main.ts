@@ -237,7 +237,7 @@ class ObjectInitializer
     const particlesMaterial = new THREE.PointsMaterial({
       sizeAttenuation: true,
       color: "white",
-      size: 0.2,
+      size: 0.25,
       alphaMap: particlesTexture,
       transparent: false,
       alphaTest: 0.005,
@@ -255,33 +255,33 @@ class ObjectInitializer
     const particles = new THREE.Points(particlesGeometry, particlesMaterial);
     this.Scene.add(particles);
 
-    this.Renderer.setAnimationLoop(() => 
+    let torusRotationRate = 0.0025;
+
+    function render(renderer: THREE.WebGLRenderer, camera: THREE.Camera)
     {
-      torusGeometry.rotateZ(0.0025);
-      this.Camera.rotateZ(0.001);
-
-      const newTorusPositions = torusGeometry.getAttribute('position');
-
-      let j = 0;
-      for (let i=0; i<=particleCount; i+=3)
+      renderer.setAnimationLoop(() => 
       {
-        vertex.fromBufferAttribute(newTorusPositions, j);
-        particlePositions[i] = vertex.x;
-        particlePositions[i+1] = vertex.y;
-        particlePositions[i+2] = vertex.z;
+        torusGeometry.rotateZ(torusRotationRate);
+        camera.rotateZ(0.001);
+  
+        const newTorusPositions = torusGeometry.getAttribute('position');
+  
+        let j = 0;
+        for (let i=0; i<=particleCount; i+=3)
+        {
+          vertex.fromBufferAttribute(newTorusPositions, j);
+          particlePositions[i] = vertex.x;
+          particlePositions[i+1] = vertex.y;
+          particlePositions[i+2] = vertex.z;
+  
+          j++;
+        }
+  
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+      });
+    }
 
-        // if (clock.getDelta() % 2 == 0)
-        // {
-        //   particlesColors[i] = Math.random();
-        //   particlesColors[i+1] = Math.random();
-        //   particlesColors[i+2] = Math.floor(Math.random() * (255 - 1) + 1);
-        // }
-
-        j++;
-      }
-
-      particlesGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-    });
+    render(setup.Renderer, setup.Camera);
 
     const colors: THREE.Color[] = [
       // new THREE.Vector3().set(0, 0, 0),
@@ -317,15 +317,57 @@ class ObjectInitializer
       particlesGeometry.setAttribute('color', new THREE.BufferAttribute(particlesColors, 3));
     }
 
+    let intervalId: number;
     let colorIndex = 0;
-    // setParticleColorsWithDelay(colorIndex);
-    setParticlesColorsWithoutDelay(colorIndex);
-    setInterval(() => {
-      // setParticleColorsWithDelay(colorIndex);
-      setParticlesColorsWithoutDelay(colorIndex);
-      colorIndex++;
-      if (colorIndex > colors.length-1) colorIndex = 0;
-    }, 750);
+    const dropdownBtns: NodeListOf<Element> = document.querySelectorAll('.startBtn')!;
+    dropdownBtns.forEach(btn => 
+    {
+        btn.addEventListener("mouseenter", () => 
+        {
+            (btn as HTMLElement).style.width = "250px";
+            if (btn.classList.contains('changeSpeed'))
+              (btn as HTMLElement).textContent = "Change Speed!";
+            else if (btn.classList.contains('changeColor'))
+              (btn as HTMLElement).textContent = "Change Color!";
+            else 
+            (btn as HTMLElement).textContent = "Alternate Colors!";
+        });
+        
+        btn.addEventListener("mouseleave", () => 
+        {
+          (btn as HTMLElement).style.width = "75px";
+          (btn as HTMLElement).textContent = "";
+        });
+
+        btn.addEventListener('click', () => 
+        {
+            if (btn.classList.contains('changeSpeed'))
+            {
+              torusRotationRate += 0.0025;
+              if (torusRotationRate > 0.0075)
+                torusRotationRate = 0.0025;
+
+              torusGeometry.rotateZ(torusRotationRate);
+
+            } else if (btn.classList.contains('changeColor'))
+            {
+              clearInterval(intervalId);
+              colorIndex++;
+              if (colorIndex > colors.length-1) colorIndex = 0;
+              setParticleColorsWithDelay(colorIndex);
+            } else 
+            {
+              clearInterval(intervalId)
+              intervalId = setInterval(() => 
+              {
+                setParticleColorsWithDelay(colorIndex);
+                //setParticlesColorsWithoutDelay(colorIndex);
+                colorIndex++; 
+                if (colorIndex > colors.length-1) colorIndex = 0;
+              }, 750);
+            }
+        });
+    });
   }
 }
 
@@ -333,6 +375,5 @@ const objectInitializer = new ObjectInitializer(setup.Scene, setup.Camera, setup
 
 objectInitializer.ParticleShape();
 //objectInitializer.InstanceShape();
-
 
 
