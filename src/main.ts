@@ -2,8 +2,6 @@ import './style.css';
 import * as THREE from 'three';
 import * as Types from "./types";
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-// User can upload an audio file, and some chape will move to the rhythm of the music
-// May be getting ahead of myself - first allow a user to choose from several audio files.
 
 /**
  * Setup
@@ -124,7 +122,7 @@ class Particles
   public Generate(): void
   {
     const textureLoader = new THREE.TextureLoader();
-    const particlesTexture = textureLoader.load('../static/textures/particles/5.png');
+    const particlesTexture = textureLoader.load('/textures/particles/5.png');
     const particlesBaseColor = new THREE.Color(0.75, 0.5, 0.25);
     const particlesShape = new THREE.TorusGeometry(5, 1, 75, 375);
     const particlesMaterial = new THREE.PointsMaterial({
