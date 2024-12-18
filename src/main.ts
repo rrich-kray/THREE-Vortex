@@ -1,6 +1,5 @@
 import './style.css';
 import * as THREE from 'three';
-import GUI from 'lil-gui';
 import * as Types from "./types";
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 // User can upload an audio file, and some chape will move to the rhythm of the music
@@ -37,6 +36,8 @@ class Setup
     
     this.Camera = this.InitCamera();
     this.Renderer = this.InitRenderer();
+
+    this.Tick();
   }
 
   public InitCamera()
@@ -91,35 +92,29 @@ class Setup
   }
 
   public Tick() {
-    setup.Renderer.render(setup.Scene, setup.Camera);
+    this.Renderer.render(this.Scene, this.Camera);
     window.requestAnimationFrame(this.Tick.bind(this));
   }
 }
 
 const setup = new Setup();
-//setup.InitTestObject();
-
-setup.Tick();
 
 class Particles
 {
   private Camera: THREE.PerspectiveCamera;
-  private Scene: THREE.Scene;
   private Renderer: THREE.WebGLRenderer;
   private ParticleHelpers: ParticleHelpers;
   private ShapeGeometryRotationRate: number;
   private CameraRotationRate: number;
 
   constructor(
-    camera: THREE.PerspectiveCamera, 
-    scene: THREE.Scene, 
+    camera: THREE.PerspectiveCamera,
     renderer: THREE.WebGLRenderer,
     particleHelpers: ParticleHelpers,
     shapeGeometryRotationRate: number,
     cameraRotationRate: number)
   {
     this.Camera = camera;
-    this.Scene = scene;
     this.Renderer = renderer;
     this.ParticleHelpers = particleHelpers;
     this.ShapeGeometryRotationRate = shapeGeometryRotationRate;
@@ -224,20 +219,20 @@ class Particles
     }
   }
   
-  private SetParticlesColorsWithoutDelay = (
-    colorIndex: number,
-    particlesColors: Float32Array,
-    colors: THREE.Color[],
-    particlesGeometry: THREE.BufferGeometry) => 
-  {
-    for (let i=0; i<=particlesColors.length-1; i+=3)
-    { 
-      particlesColors[i] =  colors[colorIndex].r;
-      particlesColors[i+1] = colors[colorIndex].g;
-      particlesColors[i+2] = colors[colorIndex].b;
-    }
-    particlesGeometry.setAttribute('color', new THREE.BufferAttribute(particlesColors, 3));
-  }
+  // private SetParticlesColorsWithoutDelay = (
+  //   colorIndex: number,
+  //   particlesColors: Float32Array,
+  //   colors: THREE.Color[],
+  //   particlesGeometry: THREE.BufferGeometry) => 
+  // {
+  //   for (let i=0; i<=particlesColors.length-1; i+=3)
+  //   { 
+  //     particlesColors[i] =  colors[colorIndex].r;
+  //     particlesColors[i+1] = colors[colorIndex].g;
+  //     particlesColors[i+2] = colors[colorIndex].b;
+  //   }
+  //   particlesGeometry.setAttribute('color', new THREE.BufferAttribute(particlesColors, 3));
+  // }
 
   private RegisterEventListeners(
     particlesShapeGeometry: THREE.BufferGeometry,
@@ -303,15 +298,11 @@ class Particles
 
 class ParticleHelpers
 {
-  private Camera: THREE.PerspectiveCamera;
   private Scene: THREE.Scene;
-  private Renderer: THREE.WebGLRenderer;
 
-  constructor(camera: THREE.PerspectiveCamera, scene: THREE.Scene, renderer: THREE.WebGLRenderer)
+  constructor(scene: THREE.Scene)
   {
-    this.Camera = camera;
     this.Scene = scene;
-    this.Renderer = renderer;
   }
 
   public GenerateShape(
@@ -354,17 +345,13 @@ class ParticleHelpers
 let shapeGeometryRotationRate = 0.0025;
 let cameraRotationRate = 0.0025;
 
-const particlesHelper = new ParticleHelpers(
-  setup.Camera, 
-  setup.Scene, 
-  setup.Renderer);
+const particlesHelper = new ParticleHelpers(setup.Scene);
 
 new Particles(
-  setup.Camera, 
-  setup.Scene, 
-  setup.Renderer, 
-  particlesHelper, 
-  shapeGeometryRotationRate, 
+  setup.Camera,
+  setup.Renderer,
+  particlesHelper,
+  shapeGeometryRotationRate,
   cameraRotationRate).Generate();
 
 
