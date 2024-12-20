@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Setup } from './Setup';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 
 export class InstanceShape
 {
@@ -14,26 +15,26 @@ export class InstanceShape
         this.Renderer = setup.Renderer;
     }
 
+    public SetEnvironmentMap()
+    {
+        const pmremGenerator = new THREE.PMREMGenerator( this.Renderer );
+        new RGBELoader().load('../static/textures/wasteland_clouds_puresky_1k.hdr', (texture) => 
+        {   
+            const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+            texture.dispose();
+            this.Scene.environment = envMap;
+        });
+    }
+
     public Generate(geometryMold: THREE.BufferGeometry) 
     {
+        this.SetEnvironmentMap();
         const positions: THREE.BufferAttribute | THREE.InterleavedBufferAttribute = geometryMold.getAttribute('position');
         const instanceCount: number = positions.count;
-        const instanceGeometry: THREE.BufferGeometry = new THREE.SphereGeometry(0.04, 16, 8);
-        const cubeTextureLoader = new THREE.CubeTextureLoader();
-        const envMapTexture = cubeTextureLoader.load([
-            '/textures/environmentMaps/0/px.jpg',
-            '/textures/environmentMaps/0/nx.jpg',
-            '/textures/environmentMaps/0/py.jpg',
-            '/textures/environmentMaps/0/ny.jpg',
-            '/textures/environmentMaps/0/pz.jpg',
-            '/textures/environmentMaps/0/nz.jpg'
-        ]);
-        // adding metalness makes the instances appear black. Setting metalness to zero makes them reappear 
-        // 
-        const instanceMaterial: THREE.Material = new THREE.MeshStandardMaterial({ color: 'white', metalness: 0, envMap: envMapTexture });
+        const instanceGeometry: THREE.BufferGeometry = new THREE.SphereGeometry(0.05, 16, 8);
+        const instanceMaterial: THREE.Material = new THREE.MeshStandardMaterial({ color: "grey", metalness: 1, roughness: 0 });
         const instanceMesh: THREE.InstancedMesh = new THREE.InstancedMesh(instanceGeometry, instanceMaterial, instanceCount);
         
-        // const instancePositions: Float32Array = new Float32Array(instanceCount*3);
         const vertex: THREE.Vector3 = new THREE.Vector3;
         const obj: THREE.Object3D = new THREE.Object3D();
 
@@ -52,7 +53,44 @@ export class InstanceShape
         this.Scene.add(instanceMesh);
 
         this.AdjustCamera();
+        this.RenderAnimation(
+            geometryMold,
+            0.025,
+            0.025,
+            instanceMesh
+        );
     }
+    
+    private RenderAnimation(
+        instanceMoldGeometry: THREE.BufferGeometry,
+        instanceMoldGeometryRotationRate: number,
+        cameraRotationRate: number,
+        instanceMesh: THREE.InstancedMesh)
+      {
+        const vertex = new THREE.Vector3;
+        const obj: THREE.Object3D = new THREE.Object3D();
+
+        this.Renderer.setAnimationLoop(() => 
+        {
+          instanceMoldGeometry.rotateZ(instanceMoldGeometryRotationRate);
+          this.Camera.rotateZ(cameraRotationRate);
+    
+          const newPositions = instanceMoldGeometry.getAttribute('position');
+    
+          for (let i=0; i<=newPositions.count-1; i++)
+          {
+            vertex.fromBufferAttribute(newPositions, i);
+            
+            obj.position.x = vertex.x;
+            obj.position.y = vertex.y;
+            obj.position.z = vertex.z;
+
+            obj.updateMatrix();
+            instanceMesh.setMatrixAt(i, obj.matrix);
+            instanceMesh.instanceMatrix.needsUpdate = true;
+          }
+        });
+      }
 
     private AdjustCamera()
     {
