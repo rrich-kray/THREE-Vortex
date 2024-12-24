@@ -18,9 +18,10 @@ let cameraRotationRate = 0.0025;
 
 const particlesHelper = new ParticleHelpers(setup.Scene);
 
-const instanceShape = new THREE.TorusGeometry(5, 1, 75, 375);
+// const instanceShape = new THREE.TorusGeometry(5, 1, 75, 375);
+const instanceShape = new THREE.TorusGeometry(5, 1, 50, 350);
 
-new InstanceShape(setup).Generate(instanceShape);
+new InstanceShape(setup, instanceShape);
 
 // new Particles(
 //   setup.Camera,
